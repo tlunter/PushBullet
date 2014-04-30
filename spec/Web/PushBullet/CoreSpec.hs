@@ -15,7 +15,7 @@ spec = do
                 o <- runPushBullet c $ getDevices
                 o `shouldBe` []
     describe "getting devices with a good API key" $ do
-        it "returns an empty list" $ do
+        it "returns a non empty list" $ do
             withManager tlsManagerSettings $ \m -> do
                 let a = ""
                     c = Connection { apiKey = a, manager = m }
