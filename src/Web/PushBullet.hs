@@ -4,4 +4,6 @@ module Web.PushBullet (
     getDevices
 ) where
 
+import Web.PushBullet.Types
 import Web.PushBullet.Core
+import Web.PushBullet.Device
