@@ -46,6 +46,7 @@ spec = do
             withManager tlsManagerSettings $ \m -> do
                 let a = pushbulletApiKey
                     c = Connection { apiKey = a, manager = m }
-                devices <- runPushBullet c getDevices
-                o <- runPushBullet c $ pushNoteToDevice "Good Test" "Success!" $ head devices
+                o <- runPushBullet c $ do
+                    devices <- getDevices
+                    pushNoteToDevice "Good Test" "Success!" $ head devices
                 responseCreated o > 0 `shouldBe` True
