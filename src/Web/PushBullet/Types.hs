@@ -14,7 +14,7 @@ import Control.Monad.Reader
 import Network.HTTP.Client (Manager)
 import Control.Monad.Catch
 
-data Device = Device { iden :: String, name :: String }
+data Device = Device { deviceIden :: String, deviceName :: String }
     deriving (Show, Eq)
 
 data Response = Response { responseIden :: String, responseCreated :: Int }

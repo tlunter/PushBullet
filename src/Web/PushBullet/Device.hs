@@ -5,11 +5,11 @@ module Web.PushBullet.Device (
 
 import qualified Data.ByteString.Lazy as LB
 import Text.JSON
-import Web.PushBullet.Types
 import Control.Monad.Reader
 import Network.HTTP.Client
 import Control.Monad.Catch
 
+import Web.PushBullet.Types
 import Web.PushBullet.Util
 
 getDevices :: PushBullet [Device]
@@ -22,28 +22,29 @@ getDevices = do
     res <- liftIO $ httpLbs r m
     let b    = responseBody res
         json = decode (convertByteStringToString $ LB.toStrict b) :: Result (JSObject JSValue)
-    return (readListOfDevices $ getListOfDevices json)
+    return (readListOfDevices json)
     `catch` \e -> do
         liftIO $ print (e :: HttpException)
         return []
 
-getListOfDevices :: Result (JSObject JSValue) -> Result [JSObject JSValue]
-getListOfDevices (Ok x)  = valFromObj "devices" x
-getListOfDevices _       = decode "[]"
-
-readListOfDevices :: Result [JSObject JSValue] -> [Device]
-readListOfDevices (Ok x) = map readDevice x
+readListOfDevices :: Result (JSObject JSValue) -> [Device]
+readListOfDevices (Ok x) = deviceMapper $ getListOfDevices x
+    where getListOfDevices :: JSObject JSValue -> Result [JSObject JSValue]
+          getListOfDevices = valFromObj "devices"
+          deviceMapper :: Result [JSObject JSValue] -> [Device]
+          deviceMapper (Ok jsonDevice) = map readDevice jsonDevice
+          deviceMapper _               = []
 readListOfDevices _      = []
 
 readDevice :: JSObject JSValue -> Device
-readDevice x = Device { iden = deviceIden, name = deviceName }
-    where deviceIden     = readIden $ getIden x
-          deviceExtras   = getExtras x
-          deviceNickname = readNickname deviceExtras
-          deviceModel    = readModel deviceExtras
-          deviceName     = if not (null deviceNickname)
-                        then deviceNickname
-                        else deviceModel
+readDevice x = Device { deviceIden = iden, deviceName = name }
+    where iden     = readIden $ getIden x
+          extras   = readExtras x
+          nickname = readString "nickname" extras
+          model    = readString "model" extras
+          name     = if not (null nickname)
+                        then nickname
+                        else model
 
 getIden :: JSObject JSValue -> Result JSString
 getIden = valFromObj "iden"
@@ -52,22 +53,14 @@ readIden :: Result JSString -> String
 readIden (Ok x) = fromJSString x
 readIden _      = ""
 
-getExtras :: JSObject JSValue -> Result (JSObject JSValue)
-getExtras = valFromObj "extras"
+readExtras :: JSObject JSValue -> JSObject JSValue
+readExtras obj = objFromObj $ valFromObj "extras" obj
+    where objFromObj :: Result (JSObject JSValue) -> JSObject JSValue
+          objFromObj (Ok x) = x
+          objFromObj _      = toJSObject []
 
-readNickname :: Result (JSObject JSValue) -> String
-readNickname (Ok object) = getNicknameString (readJSON nickname :: Result JSString)
-    where nicknameStrings = filter (\(key, _) -> (key == "nickname")) $ fromJSObject object
-          (_, nickname)   = head nicknameStrings
-          getNicknameString (Ok val) = fromJSString val
-          getNicknameString _        = ""
-readNickname _           = ""
-
-readModel :: Result (JSObject JSValue) -> String
-readModel (Ok object) = getModelString (readJSON model :: Result JSString)
-    where modelStrings = filter (\(key, _) -> (key == "model")) $ fromJSObject object
-          (_, model)   = head modelStrings
-          getModelString (Ok val) = fromJSString val
-          getModelString _        = ""
-readModel _           = ""
-
+readString :: String -> JSObject JSValue -> String
+readString key obj = string $ jsString obj
+    where jsString x = valFromObj key x :: Result JSString
+          string (Ok x) = fromJSString x
+          string _      = ""
