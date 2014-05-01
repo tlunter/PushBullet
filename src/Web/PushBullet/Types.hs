@@ -3,17 +3,25 @@
 
 module Web.PushBullet.Types (
     Device(..),
+    Response(..),
+    defaultResponse,
     Connection(..),
     PushBullet(..)
 ) where
 
 import Control.Applicative
 import Control.Monad.Reader
-import Network.HTTP.Client
+import Network.HTTP.Client (Manager)
 import Control.Monad.Catch
 
 data Device = Device { iden :: String, name :: String }
     deriving (Show, Eq)
+
+data Response = Response { responseIden :: String, responseCreated :: Int }
+    deriving (Show, Eq)
+
+defaultResponse :: Response
+defaultResponse = Response { responseIden = "", responseCreated = -1 }
 
 data Connection = Connection { apiKey :: String
                              , manager :: Manager
