@@ -20,9 +20,6 @@ pushNoteToAll title body = do
                  , ("title", convertStringToByteString title)
                  , ("body", convertStringToByteString body)]
     push params
-    `catch` \e -> do
-        liftIO $ print (e :: HttpException)
-        return defaultResponse
 
 pushNoteToDevice :: String -> String -> Device -> PushBullet Response
 pushNoteToDevice title body device = do
@@ -31,22 +28,22 @@ pushNoteToDevice title body device = do
                  , ("title", convertStringToByteString title)
                  , ("body", convertStringToByteString body)]
     push params
-    `catch` \e -> do
-        liftIO $ print (e :: HttpException)
-        return defaultResponse
 
 push :: [(B.ByteString, B.ByteString)] -> PushBullet Response
 push params = do
     conn <- ask
     let m = manager conn
         a = apiKey conn
-    req <- liftIO $ parseUrl "https://api.pushbullet.com/api/pushes"
+    req <- parseUrl "https://api.pushbullet.com/api/pushes"
     let ar = applyBasicAuth (convertStringToByteString a) "" req
         pr = urlEncodedBody params ar
     res <- liftIO $ httpLbs pr m
     let b    = responseBody res
         json = decode (convertByteStringToString $ LB.toStrict b) :: Result (JSObject JSValue)
     return (readResponse json)
+    `catch` \e -> do
+        liftIO $ print (e :: HttpException)
+        return defaultResponse
 
 readResponse :: Result (JSObject JSValue) -> Response
 readResponse (Ok x) = Response { responseIden = iden, responseCreated = created }

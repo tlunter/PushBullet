@@ -17,7 +17,7 @@ getDevices = do
     conn <- ask
     let m = manager conn
         a = apiKey conn
-    req <- liftIO $ parseUrl "https://api.pushbullet.com/api/devices"
+    req <- parseUrl "https://api.pushbullet.com/api/devices"
     let r = applyBasicAuth (convertStringToByteString a) "" req
     res <- liftIO $ httpLbs r m
     let b    = responseBody res
